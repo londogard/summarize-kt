@@ -1,9 +1,10 @@
 package com.londogard.summarize.summarizers
 
 import com.londogard.smile.SmileOperators
-import com.londogard.smile.extensions.*
-import java.nio.file.Files
-import java.nio.file.Paths
+import com.londogard.smile.extensions.bag
+import com.londogard.smile.extensions.normalize
+import com.londogard.smile.extensions.sentences
+import com.londogard.smile.extensions.words
 import kotlin.math.roundToInt
 
 class TfIdfSummarizer : SmileOperators, Summarizer {

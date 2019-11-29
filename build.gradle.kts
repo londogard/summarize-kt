@@ -9,16 +9,16 @@ plugins {
 }
 
 group = "com.londogard"
-version = "1.0-beta"
+version = "1.0.1-beta"
 
 repositories {
     mavenCentral()
-    maven(uri("https://jitpack.io"))
+    maven(url = "https://jitpack.io")
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("com.londogard:smile-nlp-kt:1.0-beta")
+    api("com.londogard:smile-nlp-kt:1.0.1-beta")
 
     testImplementation("junit:junit:4.12")
 }

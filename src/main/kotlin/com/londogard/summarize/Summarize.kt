@@ -11,11 +11,8 @@ enum class SummarizeVariant {
 }
 
 class Summarize(val summarizer: SummarizeVariant = SummarizeVariant.TfIdf) {
-    lateinit var summarizerMethod: Summarizer
-    init {
-        val summarizerMethod = when (summarizer) {
-            SummarizeVariant.TfIdf -> TfIdfSummarizer()
-        }
+    private val summarizerMethod: Summarizer = when (summarizer) {
+        SummarizeVariant.TfIdf -> TfIdfSummarizer()
     }
 
     fun parseFile(filename: String): String =
