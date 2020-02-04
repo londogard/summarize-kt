@@ -9,8 +9,8 @@ import kotlin.math.sqrt
 import kotlin.streams.toList
 
 class WordEmbeddings(
-    private val filename: String = "/embeddings/glove.6B.50d.txt",
-    private val dimensions: Int,
+    private val filename: String = "/glove_embeddings/glove.6B.50d.txt",
+    val dimensions: Int,
     private val delimiter: Char = ' ',
     private val normalized: Boolean = true
 ) {
@@ -75,6 +75,11 @@ class WordEmbeddings(
             else null
         }
     }
+
+    fun similarity(v1: Array<Float>, v2: Array<Float>): Double =
+        if (v1.any { it > 0 } && v2.any { it > 0 }) {
+            (2 - cosine(v1, v2)) / 2.0
+        } else 0.0
 
     /** Find N closest terms in the vocab to the given vector, using only words from the in-set (if defined)
      * and excluding all words from the out-set (if non-empty).  Although you can, it doesn't make much
@@ -176,8 +181,10 @@ class WordEmbeddings(
     fun loadEmbeddings(): Map<String, Array<Float>> {
         println("WordEmbeddings::Loading Embeddings")
 
-        return Files.lines(Paths.get(javaClass.getResource(filename).path))
-            .parallel()
+        return javaClass
+            .getResourceAsStream(filename)
+            .bufferedReader()
+            .lines()
             .map { line ->
                 val x = line.split(delimiter)
 
