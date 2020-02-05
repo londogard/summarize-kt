@@ -13,11 +13,11 @@ enum class ScoringConfig {
     Ghalandari
 }
 
-class EmbeddingClusterSummarizer(
+internal class EmbeddingClusterSummarizer(
     val threshold: Double = 0.3,
     val simThreshold: Double = 0.95,
     val config: ScoringConfig = ScoringConfig.Ghalandari
-) : SmileOperators, Summarizer {
+) : SmileOperators, SummarizerModel {
     private val embeddings: WordEmbeddings = WordEmbeddings(dimensions = 50)
     private val zeroArray = Array(embeddings.dimensions) { 0f }
     private fun String.simplify(): String =
@@ -66,7 +66,11 @@ class EmbeddingClusterSummarizer(
      * 1. Don't have a vector to similar to any vector in the current summary
      * 2. Otherwise just take max that we got by base scoring (comparing single sentence to centroid of document)
      */
-    private fun scoreRosellio(numSentences: Int, centroid: Array<Float>, scoreHolders: List<ScoreHolder>): List<ScoreHolder> {
+    private fun scoreRosellio(
+        numSentences: Int,
+        centroid: Array<Float>,
+        scoreHolders: List<ScoreHolder>
+    ): List<ScoreHolder> {
         val selectedIndices = mutableSetOf(0)
         val selectedVectors = mutableSetOf(scoreHolders.first().vector)
 
@@ -93,7 +97,11 @@ class EmbeddingClusterSummarizer(
      * 1. Don't have a vector to similar to any vector in the current summary
      * 2. Create centroid of currSummary + currSen and compare to centroid of whole doc
      */
-    private fun scoreGhalandari(numSentences: Int, centroid: Array<Float>, scoreHolders: List<ScoreHolder>): List<ScoreHolder> {
+    private fun scoreGhalandari(
+        numSentences: Int,
+        centroid: Array<Float>,
+        scoreHolders: List<ScoreHolder>
+    ): List<ScoreHolder> {
         val selectedIndices = mutableSetOf(scoreHolders.first().i)
         val selectedVectors = mutableSetOf(scoreHolders.first().vector)
         var centroidSummary = scoreHolders.first().vector
@@ -109,7 +117,8 @@ class EmbeddingClusterSummarizer(
                     }
                     .maxBy { score -> embeddings.cosine(centroid, (score.vector + centroidSummary).normalize()) }
                     ?.let { maxScore ->
-                        centroidSummary = (centroidSummary + maxScore.vector) // No need to normalize as it's done in the maxBy.
+                        centroidSummary =
+                            (centroidSummary + maxScore.vector) // No need to normalize as it's done in the maxBy.
                         selectedVectors.add(maxScore.vector)
                         selectedIndices.add(maxScore.i)
 
@@ -153,28 +162,5 @@ class EmbeddingClusterSummarizer(
             result = 31 * result + score.hashCode()
             return result
         }
-    }
-}
-
-object a {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val summarizer = EmbeddingClusterSummarizer()
-        val text = """
-            When airport foreman Scott Babcock went out onto the runway at Wiley Post-Will Rogers Memorial Airport in Utqiagvik, Alaska, on Monday to clear some snow, he was surprised to find a visitor waiting for him on the asphalt: a 450-pound bearded seal chilling in the milky sunshine.
-
-            “It was very strange to see the seal. I’ve seen a lot of things on runways, but never a seal,” Babcock told ABC News. His footage of the hefty mammal went viral after he posted it on Facebook.
-
-            According to local TV station KTVA, animal control was called in and eventually moved the seal with the help of a “sled.”
-
-            Normal air traffic soon resumed, the station said.
-
-            Poking fun at the seal’s surprise appearance, the Alaska Department of Transportation warned pilots on Tuesday of  “low sealings” in the North Slope region — a pun on “low ceilings,” a term used to describe low clouds and poor visibility.
-
-            Though this was the first seal sighting on the runway at the airport, the department said other animals, including birds, caribou and polar bears, have been spotted there in the past.
-
-            “Wildlife strikes to aircraft pose a significant safety hazard and cost the aviation industry hundreds of millions of dollars each year,” department spokeswoman Meadow Bailey told the Associated Press. “Birds make up over 90 percent of strikes in the U.S., while mammal strikes are rare.”
-        """.trimIndent()
-        println(summarizer.summarize(text, 2))
     }
 }

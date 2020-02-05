@@ -1,6 +1,7 @@
 package com.londogard.summarize.embeddings
 
 import com.londogard.summarize.extensions.*
+import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
@@ -9,13 +10,13 @@ import kotlin.math.sqrt
 import kotlin.streams.toList
 
 class WordEmbeddings(
-    private val filename: String = "/glove_embeddings/glove.6B.50d.txt",
+    private val filename: String = "src/main/resources/glove_embeddings/glove.6B.50d.txt",
     val dimensions: Int,
     private val delimiter: Char = ' ',
     private val normalized: Boolean = true
 ) {
     /** Vocabulary, word to embedded space */
-    val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddings() }
+    private val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddings() }
 
     /** Number of words */
     val numWords by lazy { embeddings.keys }
@@ -76,11 +77,6 @@ class WordEmbeddings(
         }
     }
 
-    fun similarity(v1: Array<Float>, v2: Array<Float>): Double =
-        if (v1.any { it > 0 } && v2.any { it > 0 }) {
-            (2 - cosine(v1, v2)) / 2.0
-        } else 0.0
-
     /** Find N closest terms in the vocab to the given vector, using only words from the in-set (if defined)
      * and excluding all words from the out-set (if non-empty).  Although you can, it doesn't make much
      * sense to define both in and out sets.
@@ -122,7 +118,7 @@ class WordEmbeddings(
     fun distance(input: List<String>, N: Int = 40): List<Pair<String, Float>>? =
         if (input.isEmpty()) listOf()
         else traverseVectors(input)
-            ?.let { vecs -> nearestNeighbours(sumVector(vecs).normalize(), outSet=input.toSet(), N = N) }
+            ?.let { vectors -> nearestNeighbours(sumVector(vectors).normalize(), outSet = input.toSet(), N = N) }
 
     /** Find the N closest terms in the vocab to the analogy:
      * - [w1] is to [w2] as [w3] is to ???
@@ -170,26 +166,22 @@ class WordEmbeddings(
             .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, itr ->
                 agg?.let { lst ->
                     vector(itr)?.let { v ->
-                        listOf(
-                            v
-                        ) + lst
+                        listOf(v) + lst
                     }
                 }
             }?.reversed()
     }
 
-    fun loadEmbeddings(): Map<String, Array<Float>> {
+    private fun loadEmbeddings(): Map<String, Array<Float>> {
         println("WordEmbeddings::Loading Embeddings")
-
-        return javaClass
-            .getResourceAsStream(filename)
-            .bufferedReader()
+        return Files
+            .newBufferedReader(Paths.get(filename))
             .lines()
             .map { line ->
                 val x = line.split(delimiter)
 
                 if (x.size > dimensions) x.first() to Array(x.size - 1) { i -> x[i + 1].toFloat() }
-                    .let { if(normalized) it.normalize() else it }
+                    .let { if (normalized) it.normalize() else it }
                 else null
             }
             .toList()
@@ -205,22 +197,7 @@ fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> {
 }
 
 /** Aggregate (sum) the given list of vectors
- * @param vecs The input vector(s).
+ * @param vectors The input vector(s).
  * @return The sum vector (aggregated from the input vectors).
  */
 fun sumVector(vectors: List<Array<Float>>): Array<Float> = vectors.reduce { agg, itr -> agg + itr }
-
-
-object RunWord2Vec {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        val model = WordEmbeddings(dimensions =  50)
-
-        // distance: Find N closest words
-        model.distance(listOf("frace"), N = 10)?.let(model::pprint)
-        model.distance(listOf("france", "usa"))?.let(model::pprint)
-        model.distance(listOf("france", "usa", "usa"))?.let(model::pprint)
-        model.analogy("king", "queen", "man", N = 10)?.let(model::pprint)
-        model.rank("apple", setOf("orange", "soda", "lettuce", "pear")).let(model::pprint)
-    }
-}
