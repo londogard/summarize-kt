@@ -2,8 +2,8 @@ package com.londogard.summarize.summarizers
 
 import com.londogard.smile.SmileOperators
 import com.londogard.smile.extensions.*
-import com.londogard.summarize.mutableSumByCols
 import com.londogard.summarize.embeddings.WordEmbeddings
+import com.londogard.summarize.extensions.mutableSumByCols
 import com.londogard.summarize.extensions.normalize
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -14,28 +14,26 @@ enum class ScoringConfig {
 }
 
 internal class EmbeddingClusterSummarizer(
-    val threshold: Double = 0.3,
-    val simThreshold: Double = 0.95,
-    val config: ScoringConfig = ScoringConfig.Ghalandari
+    private val threshold: Double = 0.3,
+    private val simThreshold: Double = 0.95,
+    private val config: ScoringConfig = ScoringConfig.Ghalandari
 ) : SmileOperators, SummarizerModel {
     private val embeddings: WordEmbeddings = WordEmbeddings(dimensions = 50)
     private val zeroArray = Array(embeddings.dimensions) { 0f }
-    private fun String.simplify(): String =
-        normalize().toLowerCase().words().joinToString(" ")
+    private fun String.simplify(): String = normalize().toLowerCase().words().joinToString(" ")
 
-    private fun getTfIdf(sentences: List<String>): Pair<List<Double>, Map<Int, String>> {
+    private fun getWordsAboveTfIdfThreshold(sentences: List<String>): Set<String> {
         val corpus = sentences.map { it.bag(stemmer = null) }
         val words = corpus.flatMap { bag -> bag.keys }.distinct()
-        val bags = corpus.map {
-            vectorize(
-                words,
-                it
-            )
-        } // Is this really how to do it? Shouldn't we do one vectorization in total per document rather than sent?
+        val bags = corpus.map { vectorize(words, it) }
         val vectors = tfidf(bags)
         val vector = vectors.mutableSumByCols()
-        return (vector.max()?.let { max -> List(vector.size) { i -> vector[i] / max } }
-            ?: vector) to words.mapIndexed { i, s -> i to s }.toMap()
+        val vecMax = vector.max() ?: 1.0
+
+        return vector
+            .map { it / vecMax }
+            .mapIndexedNotNull { i, d -> if (d > threshold) words[i] else null }
+            .toSet()
     }
 
 
@@ -68,7 +66,6 @@ internal class EmbeddingClusterSummarizer(
      */
     private fun scoreRosellio(
         numSentences: Int,
-        centroid: Array<Float>,
         scoreHolders: List<ScoreHolder>
     ): List<ScoreHolder> {
         val selectedIndices = mutableSetOf(0)
@@ -117,8 +114,7 @@ internal class EmbeddingClusterSummarizer(
                     }
                     .maxBy { score -> embeddings.cosine(centroid, (score.vector + centroidSummary).normalize()) }
                     ?.let { maxScore ->
-                        centroidSummary =
-                            (centroidSummary + maxScore.vector) // No need to normalize as it's done in the maxBy.
+                        centroidSummary = (centroidSummary + maxScore.vector)
                         selectedVectors.add(maxScore.vector)
                         selectedIndices.add(maxScore.i)
 
@@ -130,13 +126,13 @@ internal class EmbeddingClusterSummarizer(
     override fun summarize(text: String, lines: Int): String {
         val sentences = text.sentences()
         val superCleanSentences = sentences.map { it.simplify() }
-        val (tfIdf, wordMap) = getTfIdf(superCleanSentences)
-        val wordsOfInterest = tfIdf
-            .mapIndexedNotNull { index, d -> if (d > threshold) wordMap[index] else null }
-            .toSet()
+        val wordsOfInterest = getWordsAboveTfIdfThreshold(superCleanSentences)
         val centroidVector = getWordVector(superCleanSentences.flatMap { it.words() }, wordsOfInterest)
         val scores = getSentenceBaseScoring(superCleanSentences, sentences, centroidVector, wordsOfInterest)
-        val finalSentences = scoreGhalandari(lines, centroidVector, scores)
+        val finalSentences = when (config) {
+            ScoringConfig.Ghalandari -> scoreGhalandari(lines, centroidVector, scores)
+            ScoringConfig.Rosselio -> scoreRosellio(lines, scores)
+        }
 
         return finalSentences.sortedBy { it.i }.joinToString("\n") { it.rawSentence }
     }
@@ -145,22 +141,5 @@ internal class EmbeddingClusterSummarizer(
         val lines = text.sentences().size
 
         return summarize(text, (lines * ratio).roundToInt().coerceAtLeast(1))
-    }
-
-    data class ScoreHolder(val i: Int, val rawSentence: String, val score: Double, val vector: Array<Float>) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as ScoreHolder
-
-            return i == other.i && score == other.score
-        }
-
-        override fun hashCode(): Int {
-            var result = i
-            result = 31 * result + score.hashCode()
-            return result
-        }
     }
 }

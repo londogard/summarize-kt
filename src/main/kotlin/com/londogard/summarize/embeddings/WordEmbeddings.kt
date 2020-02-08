@@ -1,7 +1,6 @@
 package com.londogard.summarize.embeddings
 
 import com.londogard.summarize.extensions.*
-import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
@@ -54,6 +53,7 @@ class WordEmbeddings(
     }
 
     /** Compute the cosine similarity score between two vectors.
+     * 1.0 means equal, 0 = 90* & -1 is when they're opposite
      * @param v1 The first vector.
      * @param v2 The other vector.
      * @return The cosine similarity score of the two vectors.
@@ -107,7 +107,7 @@ class WordEmbeddings(
         }
 
         assert(top.size <= N)
-        return top.toList().sortedBy { it.second }
+        return top.toList().sortedByDescending { it.second }
     }
 
     /** Find the N closest terms in the vocab to the input word(s).
@@ -118,7 +118,7 @@ class WordEmbeddings(
     fun distance(input: List<String>, N: Int = 40): List<Pair<String, Float>>? =
         if (input.isEmpty()) listOf()
         else traverseVectors(input)
-            ?.let { vectors -> nearestNeighbours(sumVector(vectors).normalize(), outSet = input.toSet(), N = N) }
+            ?.let { vectors -> nearestNeighbours(vectors.sumByColumns().normalize(), outSet = input.toSet(), N = N) }
 
     /** Find the N closest terms in the vocab to the analogy:
      * - [w1] is to [w2] as [w3] is to ???
@@ -161,7 +161,7 @@ class WordEmbeddings(
     }
 
 
-    fun traverseVectors(words: List<String>): List<Array<Float>>? {
+    private fun traverseVectors(words: List<String>): List<Array<Float>>? {
         return words
             .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, itr ->
                 agg?.let { lst ->
@@ -189,15 +189,9 @@ class WordEmbeddings(
             .toMap()
             .also { println("WordEmbeddings::Finished Loading") }
     }
-}
 
-fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> {
-    this.add(element)
-    return this
+    private fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> {
+        this.add(element)
+        return this
+    }
 }
-
-/** Aggregate (sum) the given list of vectors
- * @param vectors The input vector(s).
- * @return The sum vector (aggregated from the input vectors).
- */
-fun sumVector(vectors: List<Array<Float>>): Array<Float> = vectors.reduce { agg, itr -> agg + itr }

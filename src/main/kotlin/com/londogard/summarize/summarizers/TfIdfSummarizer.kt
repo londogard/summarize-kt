@@ -5,7 +5,7 @@ import com.londogard.smile.extensions.bag
 import com.londogard.smile.extensions.normalize
 import com.londogard.smile.extensions.sentences
 import com.londogard.smile.extensions.words
-import com.londogard.summarize.mutableSumByCols
+import com.londogard.summarize.extensions.mutableSumByCols
 import kotlin.math.roundToInt
 
 internal class TfIdfSummarizer : SmileOperators, SummarizerModel {
