@@ -161,16 +161,10 @@ class WordEmbeddings(
     }
 
 
-    private fun traverseVectors(words: List<String>): List<Array<Float>>? {
-        return words
-            .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, itr ->
-                agg?.let { lst ->
-                    vector(itr)?.let { v ->
-                        listOf(v) + lst
-                    }
-                }
-            }?.reversed()
-    }
+    private fun traverseVectors(words: List<String>): List<Array<Float>>? = words
+        .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, word ->
+            vector(word)?.let { v -> (agg ?: emptyList()) + listOf(v) }
+        }
 
     private fun loadEmbeddings(): Map<String, Array<Float>> {
         println("WordEmbeddings::Loading Embeddings")
