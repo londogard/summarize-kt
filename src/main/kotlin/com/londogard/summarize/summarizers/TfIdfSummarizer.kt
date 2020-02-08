@@ -5,9 +5,10 @@ import com.londogard.smile.extensions.bag
 import com.londogard.smile.extensions.normalize
 import com.londogard.smile.extensions.sentences
 import com.londogard.smile.extensions.words
+import com.londogard.summarize.extensions.mutableSumByCols
 import kotlin.math.roundToInt
 
-class TfIdfSummarizer : SmileOperators, Summarizer {
+internal class TfIdfSummarizer : SmileOperators, SummarizerModel {
     private fun getSentences(text: String): List<String> = text.normalize().sentences()
 
     override fun summarize(text: String, ratio: Double): String {
@@ -23,9 +24,9 @@ class TfIdfSummarizer : SmileOperators, Summarizer {
         val bags = corpus.map { vectorize(words, it) }
         val vectors = tfidf(bags)
 
-        val vector = vectors.effectiveSumColumns()
-        val max = vector.max() ?: 1.0
-        val normalizedVector = List(vector.size) { i -> vector[i] / max }
+        val vector = vectors.mutableSumByCols()
+        val normalizedVector = vector.max()
+            ?.let { max -> List(vector.size) { i -> vector[i] / max } } ?: vector
 
         return sentences
             .asSequence()
@@ -43,13 +44,5 @@ class TfIdfSummarizer : SmileOperators, Summarizer {
             .sortedBy { it.first }
             .map { it.second }
             .joinToString("\n")
-    }
-
-    private fun List<List<Double>>.effectiveSumColumns(): List<Double> {
-        val columnSum = MutableList(this[0].size) { 0.0 }
-        for (columns in this)
-            for (i in columns.indices)
-                columnSum[i] += columns[i]
-        return columnSum.toList()
     }
 }

@@ -28,3 +28,7 @@ hs_err_pid*
 # Gradle
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
+
+out/
+build/
+src/main/resources/glove_embeddings/
