@@ -90,9 +90,8 @@ class WordEmbeddings(
         vector: Array<Float>, inSet: Set<String>? = null,
         outSet: Set<String> = setOf(), N: Int = 40
     ): List<Pair<String, Float>> {
-        val items = inSet?.mapNotNull { word -> vector(word)?.let { word to it } }?.toMap()
-        val it = (items ?: embeddings)
-            .mapNotNull { (k, v) -> if (!outSet.contains(k)) k to cosine(vector, v).toFloat() else null }
+        val items = inSet?.mapNotNull { word -> vector(word)?.let { word to it } }?.toMap() ?: embeddings
+        val it = items.mapNotNull { (k, v) -> if (!outSet.contains(k)) k to cosine(vector, v).toFloat() else null }
 
         val top = PriorityQueue<Pair<String, Float>>(compareBy { it.second })
         it.foldIndexed(top) { i, acc, (k, dist) ->
@@ -171,21 +170,17 @@ class WordEmbeddings(
         return Files
             .newBufferedReader(Paths.get(filename))
             .lines()
-            .map { line ->
+            .toList()
+            .mapNotNull { line ->
                 val x = line.split(delimiter)
 
                 if (x.size > dimensions) x.first() to Array(x.size - 1) { i -> x[i + 1].toFloat() }
                     .let { if (normalized) it.normalize() else it }
                 else null
             }
-            .toList()
-            .filterNotNull()
             .toMap()
             .also { println("WordEmbeddings::Finished Loading") }
     }
 
-    private fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> {
-        this.add(element)
-        return this
-    }
+    private fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> = apply { add(element) }
 }
