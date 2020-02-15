@@ -6,16 +6,17 @@ import java.nio.file.Paths
 import java.util.*
 import kotlin.math.pow
 import kotlin.math.sqrt
-import kotlin.streams.toList
+import kotlin.streams.asSequence
 
 class WordEmbeddings(
     private val filename: String = "src/main/resources/glove_embeddings/glove.6B.50d.txt",
     val dimensions: Int,
     private val delimiter: Char = ' ',
-    private val normalized: Boolean = true
+    private val normalized: Boolean = true,
+    private val inFilter: Set<String> = emptySet()
 ) {
     /** Vocabulary, word to embedded space */
-    private val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddings() }
+    private val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddings(inFilter) }
 
     /** Number of words */
     val numWords by lazy { embeddings.keys }
@@ -32,14 +33,6 @@ class WordEmbeddings(
      */
     fun vector(word: String): Array<Float>? = embeddings[word]
 
-    /** Compute the Euclidean distance between two vectors.
-     * @param v1 The first vector.
-     * @param v2 The other vector.
-     * @return The Euclidean distance between the two vectors.
-     */
-    fun euclidean(v1: Array<Float>, v2: Array<Float>): Double =
-        sqrt((v1 - v2).map { it.pow(2) }.sum()).toDouble()
-
     /** Compute the Euclidean distance between the vector representations of the words.
      * @param w1 The first word.
      * @param w2 The other word.
@@ -52,13 +45,21 @@ class WordEmbeddings(
         }
     }
 
+    /** Compute the Euclidean distance between two vectors.
+     * @param v1 The first vector.
+     * @param v2 The other vector.
+     * @return The Euclidean distance between the two vectors.
+     */
+    fun euclidean(v1: Array<Float>, v2: Array<Float>): Double =
+        sqrt((v1 - v2).map { it.pow(2) }.sum()).toDouble()
+
     /** Compute the cosine similarity score between two vectors.
      * 1.0 means equal, 0 = 90* & -1 is when they're opposite
      * @param v1 The first vector.
      * @param v2 The other vector.
      * @return The cosine similarity score of the two vectors.
      */
-    fun cosine(v1: Array<Float>, v2: Array<Float>): Double {
+    fun cosine(v1: Array<Float>, v2: Array<Float>, normalized: Boolean = true): Double {
         assert(v1.size == v2.size) { "Vectors must be same size (v1: ${v1.size} != v2: ${v2.size}" }
         val dot = v1.dot(v2)
 
@@ -165,12 +166,16 @@ class WordEmbeddings(
             vector(word)?.let { v -> (agg ?: emptyList()) + listOf(v) }
         }
 
-    private fun loadEmbeddings(): Map<String, Array<Float>> {
+    /**
+     * Load WordEmbeddings with a filter of words to keep
+     */
+    private fun loadEmbeddings(inFilter: Set<String>): Map<String, Array<Float>> {
         println("WordEmbeddings::Loading Embeddings")
         return Files
             .newBufferedReader(Paths.get(filename))
             .lines()
-            .toList()
+            .filter { line -> inFilter.isEmpty() || inFilter.contains(line.takeWhile { it != delimiter }) }
+            .asSequence()
             .mapNotNull { line ->
                 val x = line.split(delimiter)
 
