@@ -3,14 +3,11 @@ package com.londogard.summarize.summarizers
 import com.londogard.smile.SmileOperators
 import com.londogard.smile.extensions.*
 import com.londogard.summarize.extensions.*
-import com.londogard.summarize.embeddings.Embeddings
 import com.londogard.summarize.embeddings.LightWordEmbeddings
-import com.londogard.summarize.embeddings.WordEmbeddings
 import com.londogard.summarize.extensions.mutableSumByCols
 import com.londogard.summarize.extensions.normalize
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.system.measureTimeMillis
 
 enum class ScoringConfig {
     Rosselio,
@@ -21,7 +18,7 @@ internal class EmbeddingClusterSummarizer(
     private val threshold: Double,
     private val simThreshold: Double,
     private val config: ScoringConfig
-) : SmileOperators, SummarizerModel {
+) : SmileOperators, Summarizer {
     private var embeddings: LightWordEmbeddings = LightWordEmbeddings(dimensions = 300)
     private val zeroArray = Array(embeddings.dimensions) { 0f }
     private fun String.simplify(): String = normalize().toLowerCase().words().joinToString(" ")

@@ -8,8 +8,10 @@ import java.util.zip.ZipFile
 
 
 object DownloadHelper {
-    fun getEmbeddingPath(): String = System.getProperty("user.home") + File.separator + "summarizeEmbeddings"
-    fun embeddingsExist(): Boolean = File(getEmbeddingPath()).let {
+    val embeddingDirPath: String = "${System.getProperty("user.home")}${File.separator}summarize-embeddings"
+    val embeddingPath: String = "$embeddingDirPath${File.separator}glove.6B.50d.txt"
+
+    fun embeddingsExist(): Boolean = File(embeddingDirPath).let {
         it.exists() && it.isDirectory && it.listFiles()?.asList()?.isNotEmpty() == true
     }
 
@@ -23,18 +25,17 @@ object DownloadHelper {
 
     /**
      * 1. Download to temp directory
-     * 2. Extract embeddings into a set folder
+     * 2. Extract embeddings into 'summarize-embeddings' which is placed in root of users home folder.
      */
     fun downloadGloveEmbeddings() {
-        if (embeddingsExist()){
-            println("Embeddings exist in path ${getEmbeddingPath()}, early exiting...")
+        if (embeddingsExist()) {
+            println("Embeddings exist in path $embeddingDirPath, early exiting...")
             return
         }
 
         val tempFile = Files.createTempFile("glove", ".zip")
         val tempPath = tempFile.toAbsolutePath().toString()
-        val path = getEmbeddingPath()
-        val customDir = File(path)
+        val customDir = File(embeddingDirPath)
 
         if (!customDir.exists()) customDir.mkdir()
 
@@ -52,12 +53,5 @@ object DownloadHelper {
                     }
                 }
         }
-    }
-
-
-    // ...
-    @JvmStatic
-    fun main(args: Array<String>) {
-        downloadGloveEmbeddings()
     }
 }

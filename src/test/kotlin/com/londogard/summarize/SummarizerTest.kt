@@ -1,12 +1,12 @@
 package com.londogard.summarize
 
-import com.londogard.summarize.summarizers.SummarizerModel
+import com.londogard.summarize.summarizers.Summarizer
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MyLibraryTest {
     @Test fun testTokenization() {
-        val summarizer = SummarizerModel.tfIdfSummarizer()
+        val summarizer = Summarizer.tfIdfSummarizer
         val summary = summarizer.summarize("""CNN) - Life exists in extreme environments on Earth, from arid deserts and frozen tundras to thermal, toxic vents in the deepest reaches of the ocean floor. But it can't exist on every inch of the planet and scientists have discovered a place in Ethiopia where life can't find a way, according to a new study.
 
 In contrast with previous research, scientists conducted multiple tests and found that there is no life, not even microorganisms, in Dallol. One of Earth's most extreme environments, Dallol is incredibly hot, salty and acidic. Its ponds extend across a volcanic crater, in the Ethiopian Danakil depression, filled with salt, toxic gases and boiling water in response to extreme hydrothermal activity.

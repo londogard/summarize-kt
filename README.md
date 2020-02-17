@@ -1,7 +1,7 @@
 <a href='https://ko-fi.com/O5O819SEH' target='_blank'><img height='22' style='border:0px;height:22px;' src='https://az743702.vo.msecnd.net/cdn/kofi2.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>[![](https://jitpack.io/v/com.londogard/summarize-kt.svg)](https://jitpack.io/#com.londogard/summarize-kt)
 
 # summarize-kt
-Summarisation library with an easy-to-use API (pre-loaded models). Currently only extractive summarisation is supported.
+Summarization library with an easy-to-use API (pre-loaded models). Currently only extractive summarisation is supported.
 
 The layout:
 
@@ -13,10 +13,13 @@ The layout:
     2. [Github Packages](#github-packages)
 
 ## Usage
-There's a wrapper class called `Summarizer` that allows us to 
+There's an interface named `Summarizer` that allows us to select the method of summarization
+through its `companion object`. Two variants are available:
 
-1) select the type of `SummarizerModel` through `SummarizeVariant` parameter 
-2) summarize texts using said model.  
+1) `Summarizer.tfIdfSummarizer` 
+2) `Summarizer.embeddingClusterSummarizer(threshold: Double = 0.2, simThreshold: Double = 0.95, scoreConfig: ScoringConfig = ScoringConfig.Ghalandari)`
+
+Where we have two different scoring configurations for `embeddingClusterSummarizer`. Read more in this [section](#explanation-of-the-different-configs).  
 
 `Summarizer` has two important methods:  
 ```kotlin
@@ -27,7 +30,7 @@ Both methods returns the summary of the text, the first one returns X number of 
 
 ##### Example where we'd return ~30% of the content
 ```kotlin
-val summarizer: Summarizer = Summarizer(TfIdf)
+val summarizer: Summarizer = Summarizer.tfIdfSummarizer
 val fullText = """
 ...Plenty of text...
 """
@@ -58,10 +61,8 @@ The approach is chosen by the `ScoringConfig` where the first approach is based 
 In addition one can also set the TfIdf-threshold mentioned using the `threshold` and similarity-threshold 
 using `similarityThreshold`.
 
-**OBS** Currently Word Embeddings are not included, 
-download them from [here](http://nlp.stanford.edu/data/glove.6B.zip) and then supply the path to the 
-dimension you wish for.  
-In the future there'll be a working `DownloadHelper` that'll download the embeddings if they're missing.
+**OBS** if you want to use custom embeddings you'll currently have to fork the project.
+The emeddings should download if you don't have them (OBS: this takes ~1gb download, them 157mb on HDD).
 
 ## Installation
 The code is uploaded to two different repositories, both Jitpack.io and GitHub Packages.

@@ -7,7 +7,7 @@ import kotlin.streams.asSequence
 
 class LightWordEmbeddings(
     override val dimensions: Int,
-    private val filename: String = "src/main/resources/glove_embeddings/glove.6B.300d.txt",
+    private val filename: String = DownloadHelper.embeddingPath,
     private val delimiter: Char = ' ',
     private val normalized: Boolean = true,
     private val maxWordCount: Int = 1000
@@ -15,6 +15,11 @@ class LightWordEmbeddings(
     /** Vocabulary, word to embedded space */
     override val embeddings: MutableMap<String, Array<Float>> = mutableMapOf()
     private val keys: MutableSet<String> = mutableSetOf()
+
+    init {
+        if (filename == DownloadHelper.embeddingPath && !DownloadHelper.embeddingsExist())
+            DownloadHelper.downloadGloveEmbeddings()
+    }
 
     fun addWords(words: Set<String>) {
         val leftToAdd = words - keys
@@ -32,17 +37,21 @@ class LightWordEmbeddings(
         keys += inFilter
         embeddings.putAll(Files
             .newBufferedReader(Paths.get(filename))
-            .lines()
-            .filter { line -> inFilter.isEmpty() || inFilter.contains(line.takeWhile { it != delimiter }) }
-            .asSequence()
-            .mapNotNull { line ->
-                val x = line.split(delimiter)
+            .use { reader ->
+                reader
+                    .lines()
+                    .filter { line -> inFilter.isEmpty() || inFilter.contains(line.takeWhile { it != delimiter }) }
+                    .asSequence()
+                    .mapNotNull { line ->
+                        val x = line.split(delimiter)
 
-                if (x.size > dimensions)
-                    (x.first() to
-                            Array(x.size - 1) { i -> x[i + 1].toFloat() }.let { if (normalized) it.normalize() else it })
-                else null
-            }
-            .toMap())
+                        if (x.size > dimensions)
+                            (x.first() to
+                                    Array(x.size - 1) { i -> x[i + 1].toFloat() }.let { if (normalized) it.normalize() else it })
+                        else null
+                    }
+                    .toMap()
+            })
+
     }
 }
