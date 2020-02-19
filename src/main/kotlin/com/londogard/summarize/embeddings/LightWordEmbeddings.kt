@@ -43,8 +43,7 @@ class LightWordEmbeddings(
                     .filter { line -> inFilter.isEmpty() || inFilter.contains(line.takeWhile { it != delimiter }) }
                     .asSequence()
                     .mapNotNull { line ->
-                        val x = line.split(delimiter)
-
+                        val x = line.split(delimiter) // TODO optimize
                         if (x.size > dimensions)
                             (x.first() to
                                     Array(x.size - 1) { i -> x[i + 1].toFloat() }.let { if (normalized) it.normalize() else it })

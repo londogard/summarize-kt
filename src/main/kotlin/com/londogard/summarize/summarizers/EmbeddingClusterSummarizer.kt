@@ -40,7 +40,7 @@ internal class EmbeddingClusterSummarizer(
 
     private fun getWordVector(words: List<String>, allowedWords: Set<String>): Array<Float> = words
         .filter(allowedWords::contains)
-        .fold(zeroArray) { acc, word -> (embeddings.vector(word) ?: zeroArray) + acc }
+        .fold(zeroArray) { acc, word -> (embeddings.vector(word) ?: zeroArray) `++` acc }
         .normalize()
 
     private fun getSentenceBaseScoring(
@@ -113,9 +113,9 @@ internal class EmbeddingClusterSummarizer(
                             embeddings.cosine(score.vector, selectedVector) > simThreshold
                         }
                     }
-                    .maxBy { score -> embeddings.cosine(centroid, (score.vector + centroidSummary).normalize()) }
+                    .maxBy { score -> embeddings.cosine(centroid, (score.vector `++` centroidSummary).normalize()) }
                     ?.let { maxScore ->
-                        centroidSummary = (centroidSummary + maxScore.vector)
+                        centroidSummary = (centroidSummary `++` maxScore.vector)
                         selectedVectors.add(maxScore.vector)
                         selectedIndices.add(maxScore.i)
 

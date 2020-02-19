@@ -1,9 +1,7 @@
 package com.londogard.summarize.embeddings
 
+import com.londogard.summarize.extensions.`--`
 import com.londogard.summarize.extensions.dot
-import com.londogard.summarize.extensions.minus
-import java.util.*
-import kotlin.math.pow
 import kotlin.math.sqrt
 
 abstract class Embeddings {
@@ -30,11 +28,9 @@ abstract class Embeddings {
      * @param w2 The other word.
      * @return The Euclidean distance between the vector representations of the words.
      */
-    fun euclidean(w1: String, w2: String): Double? {
-        return traverseVectors(listOf(w1, w2))?.let { vectors ->
-            if (vectors.size == 2) euclidean(vectors.first(), vectors.last())
-            else null
-        }
+    fun euclidean(w1: String, w2: String): Double? = traverseVectors(listOf(w1, w2))?.let { vectors ->
+        if (vectors.size == 2) euclidean(vectors.first(), vectors.last())
+        else null
     }
 
     /** Compute the Euclidean distance between two vectors.
@@ -43,7 +39,7 @@ abstract class Embeddings {
      * @return The Euclidean distance between the two vectors.
      */
     fun euclidean(v1: Array<Float>, v2: Array<Float>): Double =
-        sqrt((v1 - v2).map { it.pow(2) }.sum()).toDouble()
+        (v1 `--` v2).let { vector -> sqrt(vector.dot(vector)) }
 
     /** Compute the cosine similarity score between two vectors.
      * 1.0 means equal, 0 = 90* & -1 is when they're opposite
@@ -52,10 +48,9 @@ abstract class Embeddings {
      * @return The cosine similarity score of the two vectors.
      */
     fun cosine(v1: Array<Float>, v2: Array<Float>): Double {
-        assert(v1.size == v2.size) { "Vectors must be same size (v1: ${v1.size} != v2: ${v2.size}" }
-        val dot = v1.dot(v2)
+        if (v1.size != v2.size) throw ArithmeticException("Vectors must be same size (v1: ${v1.size} != v2: ${v2.size}")
 
-        return dot / (sqrt(v1.dot(v1)) * sqrt(v2.dot(v2)))
+        return v1.dot(v2) / (sqrt(v1.dot(v1)) * sqrt(v2.dot(v2)))
     }
 
     /** Compute the cosine similarity score between the vector representations of the words.
@@ -72,6 +67,4 @@ abstract class Embeddings {
         .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, word ->
             vector(word)?.let { v -> (agg ?: emptyList()) + listOf(v) }
         }
-
-    internal fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> = apply { add(element) }
 }

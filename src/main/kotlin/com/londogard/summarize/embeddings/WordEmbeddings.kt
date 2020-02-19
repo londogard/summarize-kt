@@ -1,8 +1,7 @@
 package com.londogard.summarize.embeddings
 
-import com.londogard.summarize.extensions.minus
+import com.londogard.summarize.extensions.*
 import com.londogard.summarize.extensions.normalize
-import com.londogard.summarize.extensions.plus
 import com.londogard.summarize.extensions.sumByColumns
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -72,7 +71,7 @@ class WordEmbeddings(
         traverseVectors(listOf(w1, w2, w3))
             ?.takeIf { it.size == 3 }
             ?.let { vec ->
-                val vector = (vec[1] - vec[0]) + vec[2]
+                val vector = (vec[1] `--` vec[0]) `++` vec[2]
                 nearestNeighbours(vector.normalize(), outSet = setOf(w1, w2, w3), N = N)
             }
 
