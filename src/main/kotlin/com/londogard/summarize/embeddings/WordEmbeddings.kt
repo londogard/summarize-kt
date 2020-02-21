@@ -1,80 +1,22 @@
 package com.londogard.summarize.embeddings
 
-import com.londogard.summarize.extensions.*
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.*
-import kotlin.math.pow
-import kotlin.math.sqrt
-import kotlin.streams.toList
+import com.londogard.summarize.extensions.`++`
+import com.londogard.summarize.extensions.`--`
+import com.londogard.summarize.extensions.normalize
+import com.londogard.summarize.extensions.sumByColumns
 
 class WordEmbeddings(
-    private val filename: String = "src/main/resources/glove_embeddings/glove.6B.50d.txt",
-    val dimensions: Int,
-    private val delimiter: Char = ' ',
-    private val normalized: Boolean = true
-) {
+    override val dimensions: Int,
+    override val filename: String = DownloadHelper.embeddingPath,
+    override val delimiter: Char = ' ',
+    override val normalized: Boolean = true
+) : Embeddings() {
     /** Vocabulary, word to embedded space */
-    private val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddings() }
+    override val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddingsFromFile() }
 
-    /** Number of words */
-    val numWords by lazy { embeddings.keys }
-
-    /** Check if the word is present in the vocab map.
-     * @param word Word to be checked.
-     * @return True if the word is in the vocab map.
-     */
-    fun contains(word: String): Boolean = embeddings.contains(word)
-
-    /** Get the vector representation for the word.
-     * @param word Word to retrieve vector for.
-     * @return The vector representation of the word.
-     */
-    fun vector(word: String): Array<Float>? = embeddings[word]
-
-    /** Compute the Euclidean distance between two vectors.
-     * @param v1 The first vector.
-     * @param v2 The other vector.
-     * @return The Euclidean distance between the two vectors.
-     */
-    fun euclidean(v1: Array<Float>, v2: Array<Float>): Double =
-        sqrt((v1 - v2).map { it.pow(2) }.sum()).toDouble()
-
-    /** Compute the Euclidean distance between the vector representations of the words.
-     * @param w1 The first word.
-     * @param w2 The other word.
-     * @return The Euclidean distance between the vector representations of the words.
-     */
-    fun euclidean(w1: String, w2: String): Double? {
-        return traverseVectors(listOf(w1, w2))?.let { vectors ->
-            if (vectors.size == 2) euclidean(vectors.first(), vectors.last())
-            else null
-        }
-    }
-
-    /** Compute the cosine similarity score between two vectors.
-     * 1.0 means equal, 0 = 90* & -1 is when they're opposite
-     * @param v1 The first vector.
-     * @param v2 The other vector.
-     * @return The cosine similarity score of the two vectors.
-     */
-    fun cosine(v1: Array<Float>, v2: Array<Float>): Double {
-        assert(v1.size == v2.size) { "Vectors must be same size (v1: ${v1.size} != v2: ${v2.size}" }
-        val dot = v1.dot(v2)
-
-        return if (normalized) dot else dot / (sqrt(v1.dot(v1)) * sqrt(v2.dot(v2)))
-    }
-
-    /** Compute the cosine similarity score between the vector representations of the words.
-     * @param w1 The first word.
-     * @param w2 The other word.
-     * @return The cosine similarity score between the vector representations of the words.
-     */
-    fun cosine(w1: String, w2: String): Double? {
-        return traverseVectors(listOf(w1, w2))?.let { vectors ->
-            if (vectors.size == 2) cosine(vectors.first(), vectors.last())
-            else null
-        }
+    init {
+        if (filename == DownloadHelper.embeddingPath && !DownloadHelper.embeddingsExist())
+            DownloadHelper.downloadGloveEmbeddings()
     }
 
     /** Find N closest terms in the vocab to the given vector, using only words from the in-set (if defined)
@@ -89,24 +31,14 @@ class WordEmbeddings(
     fun nearestNeighbours(
         vector: Array<Float>, inSet: Set<String>? = null,
         outSet: Set<String> = setOf(), N: Int = 40
-    ): List<Pair<String, Float>> {
-        val items = inSet?.mapNotNull { word -> vector(word)?.let { word to it } }?.toMap() ?: embeddings
-        val it = items.mapNotNull { (k, v) -> if (!outSet.contains(k)) k to cosine(vector, v).toFloat() else null }
+    ): List<Pair<String, Double>> {
+        val inputWords = (inSet ?: embeddings.keys) - outSet
 
-        val top = PriorityQueue<Pair<String, Float>>(compareBy { it.second })
-        it.foldIndexed(top) { i, acc, (k, dist) ->
-            return@foldIndexed when {
-                i < N -> acc.addR(k to dist)
-                acc.first().second < dist -> {
-                    acc.remove()
-                    acc.addR(k to dist)
-                }
-                else -> acc
-            }
-        }
-
-        assert(top.size <= N)
-        return top.toList().sortedByDescending { it.second }
+        return embeddings
+            .filterKeys(inputWords::contains)
+            .map { (k, v) -> k to cosine(vector, v) }
+            .sortedByDescending { (_, cosineDist) -> cosineDist }
+            .take(N)
     }
 
     /** Find the N closest terms in the vocab to the input word(s).
@@ -114,9 +46,8 @@ class WordEmbeddings(
      * @param N The maximum number of terms to return (default to 40).
      * @return The N closest terms in the vocab to the input word(s) and their associated cosine similarity scores.
      */
-    fun distance(input: List<String>, N: Int = 40): List<Pair<String, Float>>? =
-        if (input.isEmpty()) listOf()
-        else traverseVectors(input)
+    fun distance(input: List<String>, N: Int = 40): List<Pair<String, Double>>? =
+        traverseVectors(input)
             ?.let { vectors -> nearestNeighbours(vectors.sumByColumns().normalize(), outSet = input.toSet(), N = N) }
 
     /** Find the N closest terms in the vocab to the analogy:
@@ -133,11 +64,11 @@ class WordEmbeddings(
      *
      * @return The N closest terms in the vocab to the analogy and their associated cosine similarity scores.
      */
-    fun analogy(w1: String, w2: String, w3: String, N: Int = 40): List<Pair<String, Float>>? =
+    fun analogy(w1: String, w2: String, w3: String, N: Int = 40): List<Pair<String, Double>>? =
         traverseVectors(listOf(w1, w2, w3))
             ?.takeIf { it.size == 3 }
             ?.let { vec ->
-                val vector = (vec[1] - vec[0]) + vec[2]
+                val vector = (vec[1] `--` vec[0]) `++` vec[2]
                 nearestNeighbours(vector.normalize(), outSet = setOf(w1, w2, w3), N = N)
             }
 
@@ -146,7 +77,7 @@ class WordEmbeddings(
      * @param set Set of words to rank.
      * @return Ordered list of words and their associated scores.
      */
-    fun rank(word: String, set: Set<String>): List<Pair<String, Float>> =
+    fun rank(word: String, set: Set<String>): List<Pair<String, Double>> =
         vector(word)
             ?.let { vec -> nearestNeighbours(vec, inSet = set, N = set.size) }
             ?: listOf()
@@ -154,33 +85,8 @@ class WordEmbeddings(
     /** Pretty print the list of words and their associated scores.
      * @param words List of (word, score) pairs to be printed.
      */
-    fun pprint(words: List<Pair<String, Float>>) {
+    fun pprint(words: List<Pair<String, Double>>) {
         println("\n%50s${" ".repeat(7)}Cosine distance\n${"-".repeat(72)}".format("Word"))
         println(words.joinToString("\n") { (word, dist) -> "%50s${" ".repeat(7)}%15f".format(word, dist) })
     }
-
-
-    private fun traverseVectors(words: List<String>): List<Array<Float>>? = words
-        .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, word ->
-            vector(word)?.let { v -> (agg ?: emptyList()) + listOf(v) }
-        }
-
-    private fun loadEmbeddings(): Map<String, Array<Float>> {
-        println("WordEmbeddings::Loading Embeddings")
-        return Files
-            .newBufferedReader(Paths.get(filename))
-            .lines()
-            .toList()
-            .mapNotNull { line ->
-                val x = line.split(delimiter)
-
-                if (x.size > dimensions) x.first() to Array(x.size - 1) { i -> x[i + 1].toFloat() }
-                    .let { if (normalized) it.normalize() else it }
-                else null
-            }
-            .toMap()
-            .also { println("WordEmbeddings::Finished Loading") }
-    }
-
-    private fun <T> PriorityQueue<T>.addR(element: T): PriorityQueue<T> = apply { add(element) }
 }

@@ -8,7 +8,7 @@ import com.londogard.smile.extensions.words
 import com.londogard.summarize.extensions.mutableSumByCols
 import kotlin.math.roundToInt
 
-internal class TfIdfSummarizer : SmileOperators, SummarizerModel {
+internal class TfIdfSummarizer : SmileOperators, Summarizer {
     private fun getSentences(text: String): List<String> = text.normalize().sentences()
 
     override fun summarize(text: String, ratio: Double): String {

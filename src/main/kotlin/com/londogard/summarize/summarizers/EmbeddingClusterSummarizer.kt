@@ -2,7 +2,8 @@ package com.londogard.summarize.summarizers
 
 import com.londogard.smile.SmileOperators
 import com.londogard.smile.extensions.*
-import com.londogard.summarize.embeddings.WordEmbeddings
+import com.londogard.summarize.extensions.*
+import com.londogard.summarize.embeddings.LightWordEmbeddings
 import com.londogard.summarize.extensions.mutableSumByCols
 import com.londogard.summarize.extensions.normalize
 import kotlin.math.min
@@ -14,11 +15,11 @@ enum class ScoringConfig {
 }
 
 internal class EmbeddingClusterSummarizer(
-    private val threshold: Double = 0.3,
-    private val simThreshold: Double = 0.95,
-    private val config: ScoringConfig = ScoringConfig.Ghalandari
-) : SmileOperators, SummarizerModel {
-    private val embeddings: WordEmbeddings = WordEmbeddings(dimensions = 50)
+    private val threshold: Double,
+    private val simThreshold: Double,
+    private val config: ScoringConfig
+) : SmileOperators, Summarizer {
+    private var embeddings: LightWordEmbeddings = LightWordEmbeddings(dimensions = 300)
     private val zeroArray = Array(embeddings.dimensions) { 0f }
     private fun String.simplify(): String = normalize().toLowerCase().words().joinToString(" ")
 
@@ -39,7 +40,7 @@ internal class EmbeddingClusterSummarizer(
 
     private fun getWordVector(words: List<String>, allowedWords: Set<String>): Array<Float> = words
         .filter(allowedWords::contains)
-        .fold(zeroArray) { acc, word -> embeddings.vector(word)?.plus(acc) ?: acc }
+        .fold(zeroArray) { acc, word -> (embeddings.vector(word) ?: zeroArray) `++` acc }
         .normalize()
 
     private fun getSentenceBaseScoring(
@@ -112,9 +113,9 @@ internal class EmbeddingClusterSummarizer(
                             embeddings.cosine(score.vector, selectedVector) > simThreshold
                         }
                     }
-                    .maxBy { score -> embeddings.cosine(centroid, (score.vector + centroidSummary).normalize()) }
+                    .maxBy { score -> embeddings.cosine(centroid, (score.vector `++` centroidSummary).normalize()) }
                     ?.let { maxScore ->
-                        centroidSummary = (centroidSummary + maxScore.vector)
+                        centroidSummary = (centroidSummary `++` maxScore.vector)
                         selectedVectors.add(maxScore.vector)
                         selectedIndices.add(maxScore.i)
 
@@ -127,6 +128,8 @@ internal class EmbeddingClusterSummarizer(
         val sentences = text.sentences()
         val superCleanSentences = sentences.map { it.simplify() }
         val wordsOfInterest = getWordsAboveTfIdfThreshold(superCleanSentences)
+        embeddings.addWords(wordsOfInterest)
+
         val centroidVector = getWordVector(superCleanSentences.flatMap { it.words() }, wordsOfInterest)
         val scores = getSentenceBaseScoring(superCleanSentences, sentences, centroidVector, wordsOfInterest)
         val finalSentences = when (config) {
