@@ -2,10 +2,17 @@ package com.londogard.summarize.embeddings
 
 import com.londogard.summarize.extensions.`--`
 import com.londogard.summarize.extensions.dot
+import com.londogard.summarize.extensions.normalize
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.math.sqrt
+import kotlin.streams.asSequence
 
 abstract class Embeddings {
     abstract val dimensions: Int
+    abstract val delimiter: Char
+    abstract val normalized: Boolean
+    abstract val filename: String
     internal abstract val embeddings: Map<String, Array<Float>>
 
     /** Number of words */
@@ -65,6 +72,25 @@ abstract class Embeddings {
 
     internal fun traverseVectors(words: List<String>): List<Array<Float>>? = words
         .fold(listOf<Array<Float>>() as List<Array<Float>>?) { agg, word ->
-            vector(word)?.let { v -> (agg ?: emptyList()) + listOf(v) }
+            vector(word)?.let { vector -> (agg ?: emptyList()) + listOf(vector) }
+        }
+
+    internal fun loadEmbeddingsFromFile(inFilter: Set<String> = emptySet()): Map<String, Array<Float>> = Files
+        .newBufferedReader(Paths.get(filename))
+        .use { reader ->
+            reader
+                .lines()
+                .filter { line -> inFilter.isEmpty() || inFilter.contains(line.takeWhile { it != delimiter }) }
+                .asSequence()
+                .mapNotNull { line ->
+                    val x = line.split(delimiter) // TODO optimize
+                    if (x.size > dimensions) {
+                        val key = x.first()
+                        val value = Array(x.size - 1) { i -> x[i + 1].toFloat() }.let { if (normalized) it.normalize() else it }
+
+                        key to value
+                    } else null
+                }
+                .toMap()
         }
 }

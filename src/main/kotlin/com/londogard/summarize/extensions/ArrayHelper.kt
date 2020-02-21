@@ -17,7 +17,6 @@ internal infix fun Array<Float>.`++`(other: Array<Float>): Array<Float> {
 internal fun Array<Float>.dot(other: Array<Float>): Double {
     if (size != other.size)
         throw IllegalArgumentException("Arrays must be of same size, $size != ${other.size}")
-    // this.withIndex().sumByDouble { indexedValue -> indexedValue.value * other[indexedValue.index] }
     var dotSum = 0.0
     for (i in 0 until size) dotSum += this[i] * other[i]
 

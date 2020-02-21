@@ -1,21 +1,18 @@
 package com.londogard.summarize.embeddings
 
-import com.londogard.summarize.extensions.*
+import com.londogard.summarize.extensions.`++`
+import com.londogard.summarize.extensions.`--`
 import com.londogard.summarize.extensions.normalize
 import com.londogard.summarize.extensions.sumByColumns
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.*
-import kotlin.streams.asSequence
 
 class WordEmbeddings(
     override val dimensions: Int,
-    private val filename: String = DownloadHelper.embeddingPath,
-    private val delimiter: Char = ' ',
-    private val normalized: Boolean = true
+    override val filename: String = DownloadHelper.embeddingPath,
+    override val delimiter: Char = ' ',
+    override val normalized: Boolean = true
 ) : Embeddings() {
     /** Vocabulary, word to embedded space */
-    override val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddings() }
+    override val embeddings: Map<String, Array<Float>> by lazy { loadEmbeddingsFromFile() }
 
     init {
         if (filename == DownloadHelper.embeddingPath && !DownloadHelper.embeddingsExist())
@@ -91,28 +88,5 @@ class WordEmbeddings(
     fun pprint(words: List<Pair<String, Double>>) {
         println("\n%50s${" ".repeat(7)}Cosine distance\n${"-".repeat(72)}".format("Word"))
         println(words.joinToString("\n") { (word, dist) -> "%50s${" ".repeat(7)}%15f".format(word, dist) })
-    }
-
-    /**
-     * Load WordEmbeddings with a filter of words to keep
-     */
-    private fun loadEmbeddings(): Map<String, Array<Float>> {
-        println("WordEmbeddings::Loading Embeddings")
-        return Files
-            .newBufferedReader(Paths.get(filename))
-            .use { reader ->
-                reader
-                    .lines()
-                    .asSequence()
-                    .mapNotNull { line ->
-                        val x = line.split(delimiter)
-
-                        if (x.size > dimensions) x.first() to Array(x.size - 1) { i -> x[i + 1].toFloat() }
-                            .let { if (normalized) it.normalize() else it }
-                        else null
-                    }
-                    .toMap()
-                    .also { println("WordEmbeddings::Finished Loading") }
-            }
     }
 }

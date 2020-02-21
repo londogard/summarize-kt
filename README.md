@@ -38,7 +38,7 @@ val summary = summarizer.summarize(fullText, ratio = 0.3)
 ```
 
 ## Explanation of the different configs
-`Summarizer` currently support two different versions, either `TfIdf` or `EmbeddingCluster` as `SummarizeVariant`.  
+`Summarizer` currently support two different versions, either `TfIdf` or `EmbeddingCluster` where the latter has two different configs.  
 #### Term Frequency-Inverse Document Frequency (TFIDF)
 `TfIdf` uses [TfIdf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) to find the most important sentences and then retrieves those back.
 #### Embedding Cluster  
@@ -62,7 +62,7 @@ In addition one can also set the TfIdf-threshold mentioned using the `threshold`
 using `similarityThreshold`.
 
 **OBS** if you want to use custom embeddings you'll currently have to fork the project.
-The emeddings should download if you don't have them (OBS: this takes ~1gb download, them 157mb on HDD).
+The emeddings should download if you don't have them (OBS: this takes ~1gb download, then 157mb on HDD).
 
 ## Installation
 The code is uploaded to two different repositories, both Jitpack.io and GitHub Packages.
