@@ -83,13 +83,16 @@ abstract class Embeddings {
                 .filter { line -> inFilter.isEmpty() || inFilter.contains(line.takeWhile { it != delimiter }) }
                 .asSequence()
                 .mapNotNull { line ->
-                    val x = line.split(delimiter) // TODO optimize
-                    if (x.size > dimensions) {
-                        val key = x.first()
-                        val value = Array(x.size - 1) { i -> x[i + 1].toFloat() }.let { if (normalized) it.normalize() else it }
+                    line
+                        .split(delimiter)
+                        .takeIf { it.size > dimensions }
+                        ?.let { elems ->
+                            val key = elems.first()
+                            val value = Array(dimensions) { i -> elems[i + 1].toFloat() }
+                                .let { if (normalized) it.normalize() else it }
 
-                        key to value
-                    } else null
+                            key to value
+                        }
                 }
                 .toMap()
         }
