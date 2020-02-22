@@ -6,10 +6,10 @@ import java.net.URL
 import java.nio.file.Files
 import java.util.zip.ZipFile
 
-
 object DownloadHelper {
-    val embeddingDirPath: String = "${System.getProperty("user.home")}${File.separator}summarize-embeddings"
+    private val embeddingDirPath: String = "${System.getProperty("user.home")}${File.separator}summarize-embeddings"
     val embeddingPath: String = "$embeddingDirPath${File.separator}glove.6B.50d.txt"
+    const val dimension: Int = 50
 
     fun embeddingsExist(): Boolean = File(embeddingDirPath).let {
         it.exists() && it.isDirectory && it.listFiles()?.asList()?.isNotEmpty() == true

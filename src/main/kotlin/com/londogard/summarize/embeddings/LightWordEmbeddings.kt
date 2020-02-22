@@ -1,7 +1,7 @@
 package com.londogard.summarize.embeddings
 
 class LightWordEmbeddings(
-    override val dimensions: Int,
+    override val dimensions: Int = DownloadHelper.dimension,
     override val filename: String = DownloadHelper.embeddingPath,
     override val delimiter: Char = ' ',
     override val normalized: Boolean = true,

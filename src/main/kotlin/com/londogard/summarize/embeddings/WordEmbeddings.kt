@@ -6,7 +6,7 @@ import com.londogard.summarize.extensions.normalize
 import com.londogard.summarize.extensions.sumByColumns
 
 class WordEmbeddings(
-    override val dimensions: Int,
+    override val dimensions: Int = DownloadHelper.dimension,
     override val filename: String = DownloadHelper.embeddingPath,
     override val delimiter: Char = ' ',
     override val normalized: Boolean = true

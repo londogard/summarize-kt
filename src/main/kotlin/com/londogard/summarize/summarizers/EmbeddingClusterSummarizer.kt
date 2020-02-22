@@ -17,10 +17,13 @@ enum class ScoringConfig {
 internal class EmbeddingClusterSummarizer(
     private val threshold: Double,
     private val simThreshold: Double,
-    private val config: ScoringConfig
+    private val config: ScoringConfig,
+    embeddingOverload: Pair<String, Int>?
 ) : SmileOperators, Summarizer {
-    private var embeddings: LightWordEmbeddings = LightWordEmbeddings(dimensions = 300)
+    private val embeddings = embeddingOverload
+        ?.let { (path, dim) -> LightWordEmbeddings(dim, path) } ?: LightWordEmbeddings()
     private val zeroArray = Array(embeddings.dimensions) { 0f }
+
     private fun String.simplify(): String = normalize().toLowerCase().words().joinToString(" ")
 
     private fun getWordsAboveTfIdfThreshold(sentences: List<String>): Set<String> {
