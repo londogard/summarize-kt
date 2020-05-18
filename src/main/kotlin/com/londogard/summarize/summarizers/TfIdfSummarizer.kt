@@ -1,15 +1,11 @@
 package com.londogard.summarize.summarizers
 
-import com.londogard.smile.SmileOperators
-import com.londogard.smile.extensions.bag
-import com.londogard.smile.extensions.normalize
-import com.londogard.smile.extensions.sentences
-import com.londogard.smile.extensions.words
 import com.londogard.summarize.extensions.mutableSumByCols
+import smile.nlp.*
 import kotlin.math.roundToInt
 
-internal class TfIdfSummarizer : SmileOperators, Summarizer {
-    private fun getSentences(text: String): List<String> = text.normalize().sentences()
+internal class TfIdfSummarizer : Summarizer {
+    private fun getSentences(text: String): List<String> = text.normalize().sentences().toList()
 
     override fun summarize(text: String, ratio: Double): String {
         val sentences = getSentences(text)
@@ -21,7 +17,7 @@ internal class TfIdfSummarizer : SmileOperators, Summarizer {
     private fun summarize(sentences: List<String>, lines: Int): String {
         val corpus = sentences.map { it.bag() } // bag includes stemming
         val words = corpus.flatMap { bag -> bag.keys }.distinct()
-        val bags = corpus.map { vectorize(words, it) }
+        val bags = corpus.map { vectorize(words.toTypedArray(), it) }
         val vectors = tfidf(bags)
 
         val vector = vectors.mutableSumByCols()

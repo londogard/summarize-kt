@@ -34,9 +34,9 @@ internal fun Array<Float>.normalize(): Array<Float> = when {
     }
 }
 
-internal fun Iterable<Array<Float>>.sumByColumns(): Array<Float> = reduce { agg, vector -> agg + vector }
+internal fun Iterable<Array<Float>>.sumByColumns(): Array<Float> = reduce { agg, vector -> agg `++` vector }
 
-internal fun List<List<Double>>.mutableSumByCols(): List<Double> {
+internal fun List<DoubleArray>.mutableSumByCols(): List<Double> {
     val columnSum = MutableList(this[0].size) { 0.0 }
     for (columns in this)
         for (i in columns.indices)

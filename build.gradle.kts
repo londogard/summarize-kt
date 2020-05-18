@@ -4,12 +4,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     `maven-publish`
     id("org.jetbrains.dokka") version "0.9.17"
-    id("com.github.ben-manes.versions") version "0.27.0"
-    kotlin("jvm") version "1.3.60"
+    kotlin("jvm") version "1.3.72"
 }
 
 group = "com.londogard"
-version = "1.1.1"
+version = "1.2.0"
+val smileVersion = "2.4.0"
 
 repositories {
     mavenCentral()
@@ -18,13 +18,11 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    api("com.londogard:smile-nlp-kt:1.0.1-beta")
+    implementation("com.londogard:embeddings-kt:master-SNAPSHOT")
+    implementation("com.github.haifengl:smile-nlp:$smileVersion")
+    implementation("com.github.haifengl:smile-kotlin:$smileVersion")
 
     testImplementation("junit:junit:4.12")
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
 }
 
 tasks.withType<KotlinCompile> {

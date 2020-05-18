@@ -1,11 +1,10 @@
 package com.londogard.summarize.summarizers
 
-import com.londogard.smile.SmileOperators
-import com.londogard.smile.extensions.*
+import com.londogard.embeddings.LightWordEmbeddings
 import com.londogard.summarize.extensions.*
-import com.londogard.summarize.embeddings.LightWordEmbeddings
 import com.londogard.summarize.extensions.mutableSumByCols
 import com.londogard.summarize.extensions.normalize
+import smile.nlp.*
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -19,7 +18,7 @@ internal class EmbeddingClusterSummarizer(
     private val simThreshold: Double,
     private val config: ScoringConfig,
     embeddingOverload: Pair<String, Int>?
-) : SmileOperators, Summarizer {
+) : Summarizer {
     private val embeddings = embeddingOverload
         ?.let { (path, dim) -> LightWordEmbeddings(dim, path) } ?: LightWordEmbeddings()
     private val zeroArray = Array(embeddings.dimensions) { 0f }
@@ -29,7 +28,7 @@ internal class EmbeddingClusterSummarizer(
     private fun getWordsAboveTfIdfThreshold(sentences: List<String>): Set<String> {
         val corpus = sentences.map { it.bag(stemmer = null) }
         val words = corpus.flatMap { bag -> bag.keys }.distinct()
-        val bags = corpus.map { vectorize(words, it) }
+        val bags = corpus.map { vectorize(words.toTypedArray(), it) }
         val vectors = tfidf(bags)
         val vector = vectors.mutableSumByCols()
         val vecMax = vector.max() ?: 1.0
@@ -41,7 +40,7 @@ internal class EmbeddingClusterSummarizer(
     }
 
 
-    private fun getWordVector(words: List<String>, allowedWords: Set<String>): Array<Float> = words
+    private fun getWordVector(words: Array<String>, allowedWords: Set<String>): Array<Float> = words
         .filter(allowedWords::contains)
         .fold(zeroArray) { acc, word -> (embeddings.vector(word) ?: zeroArray) `++` acc }
         .normalize()
@@ -133,8 +132,9 @@ internal class EmbeddingClusterSummarizer(
         val wordsOfInterest = getWordsAboveTfIdfThreshold(superCleanSentences)
         embeddings.addWords(wordsOfInterest)
 
-        val centroidVector = getWordVector(superCleanSentences.flatMap { it.words() }, wordsOfInterest)
-        val scores = getSentenceBaseScoring(superCleanSentences, sentences, centroidVector, wordsOfInterest)
+        val words = superCleanSentences.flatMap { it.words().toList() }
+        val centroidVector = getWordVector(words.toTypedArray(), wordsOfInterest)
+        val scores = getSentenceBaseScoring(superCleanSentences, sentences.toList(), centroidVector, wordsOfInterest)
         val finalSentences = when (config) {
             ScoringConfig.Ghalandari -> scoreGhalandari(lines, centroidVector, scores)
             ScoringConfig.Rosselio -> scoreRosellio(lines, scores)
