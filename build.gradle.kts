@@ -22,7 +22,7 @@ dependencies {
     implementation("com.github.haifengl:smile-nlp:$smileVersion")
     implementation("com.github.haifengl:smile-kotlin:$smileVersion")
 
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.1")
 }
 
 tasks.withType<KotlinCompile> {
