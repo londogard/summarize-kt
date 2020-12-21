@@ -3,13 +3,13 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     `maven-publish`
-    id("org.jetbrains.dokka") version "0.9.17"
-    kotlin("jvm") version "1.3.72"
+    id("org.jetbrains.dokka") version "1.4.20"
+    kotlin("jvm") version "1.4.21"
 }
 
 group = "com.londogard"
 version = "1.2.0"
-val smileVersion = "2.4.0"
+val smileVersion = "2.6.0"
 
 repositories {
     mavenCentral()
@@ -18,27 +18,16 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+
     implementation("com.londogard:embeddings-kt:master-SNAPSHOT")
     implementation("com.github.haifengl:smile-nlp:$smileVersion")
     implementation("com.github.haifengl:smile-kotlin:$smileVersion")
 
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.1")
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-}
-
-tasks.dokka {
-    outputFormat = "html"
-    outputDirectory = "$buildDir/javadoc"
-}
-
-val dokkaJar by tasks.creating(Jar::class) {
-    group = JavaBasePlugin.DOCUMENTATION_GROUP
-    description = "Assembles Kotlin docs with Dokka"
-    classifier = "javadoc"
-    from(tasks.dokka)
 }
 
 publishing {
