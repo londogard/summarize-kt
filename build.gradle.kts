@@ -9,7 +9,7 @@ plugins {
 
 group = "com.londogard"
 version = "1.2.0"
-val smileVersion = "2.4.0"
+val smileVersion = "2.6.0"
 
 repositories {
     mavenCentral()
