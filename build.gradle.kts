@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     `maven-publish`
     id("org.jetbrains.dokka") version "1.4.32"
-    kotlin("jvm") version "1.4.30"
+    kotlin("jvm") version "1.5.21"
 }
 
 group = "com.londogard"
