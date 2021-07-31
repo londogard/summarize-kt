@@ -12,6 +12,10 @@ The layout:
     1. [Jitpack (the simple way)](#jitpack-easiest)
     2. [Github Packages](#github-packages)
 
+Possible to test on [londogard.com](https://londogard.com/projects/smry).
+![image](https://user-images.githubusercontent.com/7490199/127736892-3278817b-cf0c-496a-9193-e14c6a973c74.png)
+
+
 ## Usage
 There's an interface named `Summarizer` that allows us to select the method of summarization
 through its `companion object`. Two variants are available:
